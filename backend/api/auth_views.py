@@ -35,6 +35,7 @@ def login(request):
     refresh = RefreshToken.for_user(user)
 
     return Response({
+        'user' : UserSerializer(user).data,
         'access': str(refresh.access_token),
         'refresh': str(refresh),
     })

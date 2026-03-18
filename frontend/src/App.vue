@@ -1,15 +1,32 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { onBeforeUnmount, onMounted } from 'vue'
+import { RouterView } from 'vue-router'
+import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
 
-const message = ref('')
+const toast = useToast()
 
-onMounted(async () => {
-  const res = await axios.get('http://127.0.0.1:8000/api/hello/')
-  message.value = res.data.message
+function onSessionExpired(event) {
+  const detail = event?.detail?.message || 'Session expired, please log in again.'
+
+  toast.add({
+    severity: 'warn',
+    summary: 'Session expired',
+    detail,
+    life: 4200,
+  })
+}
+
+onMounted(() => {
+  window.addEventListener('auth:session-expired', onSessionExpired)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('auth:session-expired', onSessionExpired)
 })
 </script>
 
 <template>
-  <h1>{{ message }}</h1>
+  <Toast position="top-right" />
+  <RouterView />
 </template>
