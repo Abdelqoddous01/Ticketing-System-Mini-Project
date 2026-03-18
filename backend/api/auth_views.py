@@ -6,23 +6,18 @@ from django.contrib.auth import authenticate
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User
-from .serializers import UserSerializer
+from .serializers import UserSerializer, RegisterSerializer
 
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    data = request.data
+    serializer = RegisterSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.save()
 
-    user = User.objects.create_user(
-        email=data['email'],
-        password=data['password'],
-        role='customer'
-    )
-
-    return Response(UserSerializer(user).data)
+    return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
 
