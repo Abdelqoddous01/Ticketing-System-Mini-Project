@@ -6,13 +6,17 @@ import Card from 'primevue/card'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
+import Divider from 'primevue/divider'
 import ProgressSpinner from 'primevue/progressspinner'
 
 import { useAuthStore } from '../stores/authStore'
 import { useTicketStore } from '../stores/ticketStore'
 import StatusBadge from '../components/StatusBadge.vue'
 import PriorityBadge from '../components/PriorityBadge.vue'
+import MessageThread from '../components/MessageThread.vue'
+import MessageInput from '../components/MessageInput.vue'
 import { renderMarkdown } from '../utils/markdown'
+import { getTicketMessages, sendTicketMessage } from '../services/messageService'
 import { TICKET_PRIORITY_OPTIONS, TICKET_STATUS_OPTIONS } from '../services/ticketService'
 
 const route = useRoute()
@@ -25,8 +29,14 @@ const selectedStatus = ref(null)
 const selectedPriority = ref(null)
 const selectedAgent = ref(null)
 
+const messages = ref([])
+const isLoadingMessages = ref(false)
+const isSendingMessage = ref(false)
+const messageDraft = ref('')
+
 const ticket = computed(() => ticketStore.selectedTicket)
 const ticketId = computed(() => Number(route.params.id))
+const currentUserId = computed(() => (Number.isInteger(authStore.user?.id) ? authStore.user.id : -1))
 
 const userRole = computed(() => authStore.user?.role)
 const canUpdateStatus = computed(() => userRole.value === 'agent' || userRole.value === 'admin')
@@ -73,14 +83,6 @@ const hasPendingChanges = computed(() => {
   return Boolean(statusChanged || priorityChanged || assignmentChanged)
 })
 
-function formatDate(value) {
-  if (!value) {
-    return '-'
-  }
-
-  return new Date(value).toLocaleString()
-}
-
 function userLabel(userId) {
   return userId ? `User #${userId}` : 'Unassigned'
 }
@@ -115,17 +117,107 @@ function extractErrorMessage(error, fallback) {
   return fallback
 }
 
+function normalizeMessage(message) {
+  return {
+    id: message.id,
+    ticket: message.ticket,
+    author: message.author ?? null,
+    author_email: message.author_email ?? null,
+    author_role: message.author_role ?? null,
+    body: message.body || '',
+    created_at: message.created_at || new Date().toISOString(),
+    isOptimistic: Boolean(message.isOptimistic),
+  }
+}
+
+async function loadMessages() {
+  if (!Number.isInteger(ticketId.value) || ticketId.value <= 0) {
+    messages.value = []
+    return
+  }
+
+  isLoadingMessages.value = true
+
+  try {
+    const data = await getTicketMessages(ticketId.value)
+    messages.value = Array.isArray(data) ? data.map(normalizeMessage) : []
+  } finally {
+    isLoadingMessages.value = false
+  }
+}
+
+async function refreshMessages() {
+  try {
+    await loadMessages()
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Unable to load messages',
+      detail: extractErrorMessage(error, 'Could not fetch ticket messages.'),
+      life: 4200,
+    })
+  }
+}
+
+async function sendMessage() {
+  if (!ticket.value || isSendingMessage.value) {
+    return
+  }
+
+  const body = messageDraft.value.trim()
+  if (!body) {
+    return
+  }
+
+  const optimisticId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  const optimisticMessage = normalizeMessage({
+    id: optimisticId,
+    ticket: ticket.value.id,
+    author: currentUserId.value,
+    author_email: authStore.user?.email ?? null,
+    author_role: authStore.user?.role ?? null,
+    body,
+    created_at: new Date().toISOString(),
+    isOptimistic: true,
+  })
+
+  messages.value = [...messages.value, optimisticMessage]
+  messageDraft.value = ''
+  isSendingMessage.value = true
+
+  try {
+    const savedMessage = normalizeMessage(await sendTicketMessage(ticket.value.id, { body }))
+    const messageIndex = messages.value.findIndex((message) => message.id === optimisticId)
+
+    if (messageIndex === -1) {
+      messages.value.push(savedMessage)
+    } else {
+      messages.value.splice(messageIndex, 1, savedMessage)
+    }
+  } catch (error) {
+    messages.value = messages.value.filter((message) => message.id !== optimisticId)
+    messageDraft.value = body
+    toast.add({
+      severity: 'error',
+      summary: 'Message failed',
+      detail: extractErrorMessage(error, 'Unable to send message.'),
+      life: 4200,
+    })
+  } finally {
+    isSendingMessage.value = false
+  }
+}
+
 async function loadTicketData() {
   if (!Number.isInteger(ticketId.value) || ticketId.value <= 0) {
+    messages.value = []
+    messageDraft.value = ''
     await router.replace('/tickets')
     return
   }
 
   try {
-    await Promise.all([
-      ticketStore.fetchTicket(ticketId.value),
-      ticketStore.fetchTicketMessages(ticketId.value),
-    ])
+    await Promise.all([ticketStore.fetchTicket(ticketId.value), loadMessages()])
 
     if (canAssignAgent.value) {
       await ticketStore.fetchAgents()
@@ -257,7 +349,7 @@ onMounted(loadTicketData)
         label="Refresh"
         icon="pi pi-refresh"
         severity="secondary"
-        :loading="ticketStore.isLoadingTicket || ticketStore.isLoadingMessages"
+        :loading="ticketStore.isLoadingTicket || isLoadingMessages"
         @click="loadTicketData"
       />
     </div>
@@ -280,8 +372,8 @@ onMounted(loadTicketData)
             <div class="meta-grid">
               <div><strong>Created By:</strong> {{ userLabel(ticket.created_by) }}</div>
               <div><strong>Assigned To:</strong> {{ userLabel(ticket.assigned_to) }}</div>
-              <div><strong>Created At:</strong> {{ formatDate(ticket.created_at) }}</div>
-              <div><strong>Updated At:</strong> {{ formatDate(ticket.updated_at) }}</div>
+              <div><strong>Created At:</strong> {{ new Date(ticket.created_at).toLocaleString() }}</div>
+              <div><strong>Updated At:</strong> {{ new Date(ticket.updated_at).toLocaleString() }}</div>
             </div>
 
             <Panel header="Description" toggleable class="description-panel">
@@ -296,29 +388,24 @@ onMounted(loadTicketData)
               icon="pi pi-refresh"
               text
               rounded
-              :loading="ticketStore.isLoadingMessages"
-              @click="ticketStore.fetchTicketMessages(ticket.id)"
+              :loading="isLoadingMessages"
+              @click="refreshMessages"
             />
           </template>
 
-          <div v-if="ticketStore.isLoadingMessages" class="centered">
-            <ProgressSpinner style="width: 28px; height: 28px" />
-          </div>
-          <div v-else-if="ticketStore.messages.length === 0" class="empty-state">
-            No messages yet.
-          </div>
-          <div v-else class="messages-list">
-            <Card v-for="message in ticketStore.messages" :key="message.id">
-              <template #title>
-                <div class="message-title">
-                  <span>{{ userLabel(message.author) }}</span>
-                  <small>{{ formatDate(message.created_at) }}</small>
-                </div>
-              </template>
-              <template #content>
-                <div class="markdown-body" v-html="renderMarkdown(message.body)" />
-              </template>
-            </Card>
+          <div class="messages-content">
+            <MessageThread
+              :messages="messages"
+              :is-loading="isLoadingMessages"
+              :current-user-id="currentUserId"
+            />
+            <Divider />
+            <MessageInput
+              v-model="messageDraft"
+              :loading="isSendingMessage"
+              :disabled="!ticket"
+              @send="sendMessage"
+            />
           </div>
         </Panel>
       </div>
@@ -445,16 +532,9 @@ onMounted(loadTicketData)
   margin-top: 1rem;
 }
 
-.messages-list {
+.messages-content {
   display: grid;
   gap: 0.75rem;
-}
-
-.message-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
 }
 
 .sidebar-column .action-group + .action-group {
@@ -490,10 +570,6 @@ onMounted(loadTicketData)
   border-left: 3px solid #9ca3af;
   padding-left: 0.75rem;
   color: #374151;
-}
-
-.empty-state {
-  color: #6b7280;
 }
 
 .w-full {

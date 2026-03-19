@@ -119,7 +119,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = self.get_object()
 
         if request.method == 'GET':
-            messages = ticket.messages.all()
+            messages = ticket.messages.select_related('author').order_by('created_at')
             serializer = MessageSerializer(messages, many=True)
             return Response(serializer.data)
 

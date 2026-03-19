@@ -22,6 +22,8 @@ export interface TicketMessage {
   id: number
   ticket: number
   author: number
+  author_email?: string
+  author_role?: 'customer' | 'agent' | 'admin'
   body: string
   created_at: string
 }

@@ -40,9 +40,12 @@ class TicketSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    author_email = serializers.EmailField(source='author.email', read_only=True)
+    author_role = serializers.CharField(source='author.role', read_only=True)
+
     class Meta:
         model = Message
-        fields = ['id', 'ticket', 'author', 'body', 'created_at']
+        fields = ['id', 'ticket', 'author', 'author_email', 'author_role', 'body', 'created_at']
         read_only_fields = ['id', 'ticket', 'author', 'created_at']
 
 
