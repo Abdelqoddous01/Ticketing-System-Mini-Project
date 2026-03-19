@@ -6,6 +6,7 @@ import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
+import { useI18n } from 'vue-i18n'
 
 import { useAuthStore } from '../stores/authStore'
 import { roleRedirect } from '../services/authService'
@@ -14,6 +15,7 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const form = reactive({
   email: '',
@@ -57,8 +59,8 @@ async function onSubmit() {
   if (!form.email || !form.password || !form.confirmPassword) {
     toast.add({
       severity: 'warn',
-      summary: 'Missing fields',
-      detail: 'Email, password and confirm password are required.',
+      summary: t('auth.register.toast.missingFieldsSummary'),
+      detail: t('auth.register.toast.missingFieldsDetail'),
       life: 3000,
     })
     return
@@ -67,8 +69,8 @@ async function onSubmit() {
   if (form.password !== form.confirmPassword) {
     toast.add({
       severity: 'error',
-      summary: 'Validation error',
-      detail: 'Passwords do not match.',
+      summary: t('auth.register.toast.validationSummary'),
+      detail: t('auth.register.toast.passwordMismatch'),
       life: 3500,
     })
     return
@@ -81,8 +83,8 @@ async function onSubmit() {
 
     toast.add({
       severity: 'success',
-      summary: 'Registration complete',
-      detail: 'Your account was created and you are now logged in.',
+      summary: t('auth.register.toast.successSummary'),
+      detail: t('auth.register.toast.successDetail'),
       life: 2500,
     })
 
@@ -91,8 +93,8 @@ async function onSubmit() {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Registration failed',
-      detail: extractErrorMessage(error, 'Unable to register.'),
+      summary: t('auth.register.toast.failedSummary'),
+      detail: extractErrorMessage(error, t('auth.register.toast.failedDetail')),
       life: 4500,
     })
   } finally {
@@ -104,11 +106,11 @@ async function onSubmit() {
 <template>
   <div class="auth-page">
     <Card class="auth-card">
-      <template #title>Register</template>
+      <template #title>{{ t('auth.register.cardTitle') }}</template>
       <template #content>
         <form class="auth-form" @submit.prevent="onSubmit">
           <div class="field">
-            <label for="email">Email</label>
+            <label for="email">{{ t('auth.register.emailLabel') }}</label>
             <InputText
               id="email"
               v-model="form.email"
@@ -119,7 +121,7 @@ async function onSubmit() {
           </div>
 
           <div class="field">
-            <label for="password">Password</label>
+            <label for="password">{{ t('auth.register.passwordLabel') }}</label>
             <Password
               id="password"
               v-model="form.password"
@@ -128,12 +130,12 @@ async function onSubmit() {
               autocomplete="new-password"
               input-class="w-full"
               fluid
-              placeholder="Create a password"
+              :placeholder="t('auth.register.passwordPlaceholder')"
             />
           </div>
 
           <div class="field">
-            <label for="confirm-password">Confirm password</label>
+            <label for="confirm-password">{{ t('auth.register.confirmPasswordLabel') }}</label>
             <Password
               id="confirm-password"
               v-model="form.confirmPassword"
@@ -142,16 +144,16 @@ async function onSubmit() {
               autocomplete="new-password"
               input-class="w-full"
               fluid
-              placeholder="Repeat your password"
+              :placeholder="t('auth.register.confirmPasswordPlaceholder')"
             />
           </div>
 
-          <Button type="submit" label="Register" :loading="isSubmitting" class="w-full" />
+          <Button type="submit" :label="t('auth.register.submit')" :loading="isSubmitting" class="w-full" />
         </form>
 
         <p class="auth-link">
-          Already registered?
-          <RouterLink to="/login">Login</RouterLink>
+          {{ t('auth.register.alreadyRegistered') }}
+          <RouterLink to="/login">{{ t('auth.register.login') }}</RouterLink>
         </p>
       </template>
     </Card>

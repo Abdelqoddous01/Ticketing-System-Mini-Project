@@ -11,11 +11,13 @@ import router from './router'
 import { pinia } from './stores/pinia'
 import { useAuthStore } from './stores/authStore'
 import { setupHttpInterceptors } from './services/http'
+import { i18n } from './i18n'
 
 const app = createApp(App)
 
 app.use(pinia)
 app.use(router)
+app.use(i18n)
 app.use(ToastService)
 app.use(PrimeVue, {
   theme: {

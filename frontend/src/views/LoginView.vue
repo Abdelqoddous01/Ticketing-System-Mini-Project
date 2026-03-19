@@ -6,6 +6,7 @@ import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
+import { useI18n } from 'vue-i18n'
 
 import { useAuthStore } from '../stores/authStore'
 import { roleRedirect } from '../services/authService'
@@ -14,6 +15,7 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const form = reactive({
   email: '',
@@ -48,8 +50,8 @@ async function onSubmit() {
   if (!form.email || !form.password) {
     toast.add({
       severity: 'warn',
-      summary: 'Missing fields',
-      detail: 'Email and password are required.',
+      summary: t('auth.login.toast.missingFieldsSummary'),
+      detail: t('auth.login.toast.missingFieldsDetail'),
       life: 3000,
     })
     return
@@ -62,8 +64,8 @@ async function onSubmit() {
 
     toast.add({
       severity: 'success',
-      summary: 'Logged in',
-      detail: 'Welcome back.',
+      summary: t('auth.login.toast.successSummary'),
+      detail: t('auth.login.toast.successDetail'),
       life: 2200,
     })
 
@@ -72,8 +74,8 @@ async function onSubmit() {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Login failed',
-      detail: extractErrorMessage(error, 'Unable to login.'),
+      summary: t('auth.login.toast.failedSummary'),
+      detail: extractErrorMessage(error, t('auth.login.toast.failedDetail')),
       life: 4000,
     })
   } finally {
@@ -85,11 +87,11 @@ async function onSubmit() {
 <template>
   <div class="auth-page">
     <Card class="auth-card">
-      <template #title>Login</template>
+      <template #title>{{ t('auth.login.cardTitle') }}</template>
       <template #content>
         <form class="auth-form" @submit.prevent="onSubmit">
           <div class="field">
-            <label for="email">Email</label>
+            <label for="email">{{ t('auth.login.emailLabel') }}</label>
             <InputText
               id="email"
               v-model="form.email"
@@ -100,7 +102,7 @@ async function onSubmit() {
           </div>
 
           <div class="field">
-            <label for="password">Password</label>
+            <label for="password">{{ t('auth.login.passwordLabel') }}</label>
             <Password
               id="password"
               v-model="form.password"
@@ -109,16 +111,16 @@ async function onSubmit() {
               autocomplete="current-password"
               input-class="w-full"
               fluid
-              placeholder="Enter your password"
+              :placeholder="t('auth.login.passwordPlaceholder')"
             />
           </div>
 
-          <Button type="submit" label="Login" :loading="isSubmitting" class="w-full" />
+          <Button type="submit" :label="t('auth.login.submit')" :loading="isSubmitting" class="w-full" />
         </form>
 
         <p class="auth-link">
-          No account yet?
-          <RouterLink to="/register">Create one</RouterLink>
+          {{ t('auth.login.noAccount') }}
+          <RouterLink to="/register">{{ t('auth.login.createOne') }}</RouterLink>
         </p>
       </template>
     </Card>

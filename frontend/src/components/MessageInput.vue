@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   modelValue: {
@@ -19,6 +20,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'send'])
+const { t } = useI18n()
 
 const draft = computed({
   get: () => props.modelValue,
@@ -52,14 +54,14 @@ function onKeydown(event) {
       auto-resize
       rows="4"
       class="w-full"
-      placeholder="Type a message..."
+      :placeholder="t('messages.inputPlaceholder')"
       :disabled="disabled"
       @keydown="onKeydown"
     />
     <div class="input-footer">
-      <small class="hint">Use Ctrl+Enter to send</small>
+      <small class="hint">{{ t('messages.sendHint') }}</small>
       <Button
-        label="Send"
+        :label="t('messages.send')"
         icon="pi pi-send"
         :loading="loading"
         :disabled="!canSubmit"

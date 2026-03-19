@@ -4,6 +4,7 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import Button from 'primevue/button'
+import { useI18n } from 'vue-i18n'
 
 import { USER_ROLE_OPTIONS } from '../services/userService'
 
@@ -27,6 +28,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:visible', 'submit'])
+const { t } = useI18n()
 
 const form = reactive({
   email: '',
@@ -39,11 +41,20 @@ const errors = reactive({
   password: '',
 })
 
-const roleOptions = USER_ROLE_OPTIONS
+const roleOptions = computed(() =>
+  USER_ROLE_OPTIONS.map((option) => ({
+    ...option,
+    label: t(`user.roles.${option.value}`),
+  })),
+)
 
 const isEditMode = computed(() => props.mode === 'edit')
-const dialogTitle = computed(() => (isEditMode.value ? 'Edit User' : 'Create User'))
-const submitLabel = computed(() => (isEditMode.value ? 'Save User' : 'Create User'))
+const dialogTitle = computed(() =>
+  isEditMode.value ? t('userDialog.editTitle') : t('userDialog.createTitle'),
+)
+const submitLabel = computed(() =>
+  isEditMode.value ? t('userDialog.editSubmit') : t('userDialog.createSubmit'),
+)
 
 const dialogVisible = computed({
   get: () => props.visible,
@@ -71,17 +82,17 @@ function validate() {
   errors.password = ''
 
   if (!form.email.trim()) {
-    errors.email = 'Email is required.'
+    errors.email = t('userDialog.validation.emailRequired')
     return false
   }
 
   if (!form.password && !isEditMode.value) {
-    errors.password = 'Password is required.'
+    errors.password = t('userDialog.validation.passwordRequired')
     return false
   }
 
   if (form.password && form.password.length < 8) {
-    errors.password = 'Password must be at least 8 characters.'
+    errors.password = t('userDialog.validation.passwordLength')
     return false
   }
 
@@ -110,7 +121,7 @@ function onSubmit() {
   >
     <form class="user-form" @submit.prevent="onSubmit">
       <div class="field">
-        <label for="user-email">Email</label>
+        <label for="user-email">{{ t('userDialog.emailLabel') }}</label>
         <InputText
           id="user-email"
           v-model="form.email"
@@ -122,33 +133,37 @@ function onSubmit() {
       </div>
 
       <div class="field">
-        <label for="user-password">Password</label>
+        <label for="user-password">{{ t('userDialog.passwordLabel') }}</label>
         <InputText
           id="user-password"
           v-model="form.password"
           type="password"
-          :placeholder="isEditMode ? 'Leave blank to keep current password' : 'At least 8 characters'"
+          :placeholder="
+            isEditMode
+              ? t('userDialog.passwordEditPlaceholder')
+              : t('userDialog.passwordCreatePlaceholder')
+          "
           :autocomplete="isEditMode ? 'current-password' : 'new-password'"
         />
         <small v-if="errors.password" class="field-error">{{ errors.password }}</small>
       </div>
 
       <div class="field">
-        <label for="user-role">Role</label>
+        <label for="user-role">{{ t('userDialog.roleLabel') }}</label>
         <Dropdown
           id="user-role"
           v-model="form.role"
           :options="roleOptions"
           option-label="label"
           option-value="value"
-          placeholder="Select role"
+          :placeholder="t('userDialog.rolePlaceholder')"
         />
       </div>
     </form>
 
     <template #footer>
       <Button
-        label="Cancel"
+        :label="t('common.cancel')"
         severity="secondary"
         text
         @click="dialogVisible = false"

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import Tag from 'primevue/tag'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   value: {
@@ -8,12 +9,7 @@ const props = defineProps({
     default: 'medium',
   },
 })
-
-const LABEL_MAP = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-}
+const { t } = useI18n()
 
 const SEVERITY_MAP = {
   low: 'success',
@@ -21,7 +17,13 @@ const SEVERITY_MAP = {
   high: 'danger',
 }
 
-const label = computed(() => LABEL_MAP[props.value] || props.value || 'Unknown')
+const label = computed(() => {
+  if (!props.value) {
+    return t('tickets.priority.unknown')
+  }
+
+  return t(`tickets.priority.${props.value}`)
+})
 const severity = computed(() => SEVERITY_MAP[props.value] || 'secondary')
 </script>
 

@@ -8,6 +8,7 @@ import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Divider from 'primevue/divider'
 import ProgressSpinner from 'primevue/progressspinner'
+import { useI18n } from 'vue-i18n'
 
 import { useAuthStore } from '../stores/authStore'
 import { useTicketStore } from '../stores/ticketStore'
@@ -24,6 +25,7 @@ const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
 const ticketStore = useTicketStore()
+const { t, locale } = useI18n()
 
 const selectedStatus = ref(null)
 const selectedPriority = ref(null)
@@ -47,8 +49,18 @@ const canSaveAny = computed(
   () => canUpdateStatus.value || canUpdatePriority.value || canAssignAgent.value,
 )
 
-const statusOptions = TICKET_STATUS_OPTIONS
-const priorityOptions = TICKET_PRIORITY_OPTIONS
+const statusOptions = computed(() =>
+  TICKET_STATUS_OPTIONS.map((option) => ({
+    ...option,
+    label: t(`tickets.status.${option.value}`),
+  })),
+)
+const priorityOptions = computed(() =>
+  TICKET_PRIORITY_OPTIONS.map((option) => ({
+    ...option,
+    label: t(`tickets.priority.${option.value}`),
+  })),
+)
 
 const agentOptions = computed(() => {
   const options = ticketStore.agents.map((agent) => ({
@@ -56,7 +68,7 @@ const agentOptions = computed(() => {
     value: agent.id,
   }))
 
-  return [{ label: 'Unassigned', value: null }, ...options]
+  return [{ label: t('common.unassigned'), value: null }, ...options]
 })
 
 const renderedDescription = computed(() => renderMarkdown(ticket.value?.description || ''))
@@ -85,10 +97,10 @@ const hasPendingChanges = computed(() => {
 
 function userLabel(userId, userEmail = null) {
   if (!userId) {
-    return 'Unassigned'
+    return t('common.unassigned')
   }
 
-  return userEmail || `User #${userId}`
+  return userEmail || t('user.fallback.indexed', { id: userId })
 }
 
 function extractErrorMessage(error, fallback) {
@@ -156,8 +168,8 @@ async function refreshMessages() {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Unable to load messages',
-      detail: extractErrorMessage(error, 'Could not fetch ticket messages.'),
+      summary: t('tickets.detail.toast.messagesFailedSummary'),
+      detail: extractErrorMessage(error, t('tickets.detail.toast.messagesFailedDetail')),
       life: 4200,
     })
   }
@@ -203,8 +215,8 @@ async function sendMessage() {
     messageDraft.value = body
     toast.add({
       severity: 'error',
-      summary: 'Message failed',
-      detail: extractErrorMessage(error, 'Unable to send message.'),
+      summary: t('tickets.detail.toast.sendFailedSummary'),
+      detail: extractErrorMessage(error, t('tickets.detail.toast.sendFailedDetail')),
       life: 4200,
     })
   } finally {
@@ -229,8 +241,8 @@ async function loadTicketData() {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Unable to load ticket',
-      detail: extractErrorMessage(error, 'Could not fetch ticket details.'),
+      summary: t('tickets.detail.toast.loadFailedSummary'),
+      detail: extractErrorMessage(error, t('tickets.detail.toast.loadFailedDetail')),
       life: 4500,
     })
   }
@@ -256,8 +268,8 @@ async function saveChanges() {
   if (!statusChanged && !priorityChanged && !assignmentChanged) {
     toast.add({
       severity: 'info',
-      summary: 'No changes',
-      detail: 'There is nothing new to save.',
+      summary: t('tickets.detail.toast.noChangesSummary'),
+      detail: t('tickets.detail.toast.noChangesDetail'),
       life: 2200,
     })
     return
@@ -278,15 +290,15 @@ async function saveChanges() {
 
     toast.add({
       severity: 'success',
-      summary: 'Ticket updated',
-      detail: 'Your changes have been saved.',
+      summary: t('tickets.detail.toast.savedSummary'),
+      detail: t('tickets.detail.toast.savedDetail'),
       life: 2600,
     })
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Save failed',
-      detail: extractErrorMessage(error, 'Unable to save your changes.'),
+      summary: t('tickets.detail.toast.saveFailedSummary'),
+      detail: extractErrorMessage(error, t('tickets.detail.toast.saveFailedDetail')),
       life: 4200,
     })
   }
@@ -297,7 +309,7 @@ async function deleteTicket() {
     return
   }
 
-  if (!window.confirm('Delete this ticket permanently?')) {
+  if (!window.confirm(t('tickets.detail.deleteConfirm'))) {
     return
   }
 
@@ -305,16 +317,16 @@ async function deleteTicket() {
     await ticketStore.deleteTicket(ticket.value.id)
     toast.add({
       severity: 'success',
-      summary: 'Ticket deleted',
-      detail: 'The ticket has been removed.',
+      summary: t('tickets.detail.toast.deletedSummary'),
+      detail: t('tickets.detail.toast.deletedDetail'),
       life: 2400,
     })
     await router.push('/tickets')
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Delete failed',
-      detail: extractErrorMessage(error, 'Unable to delete this ticket.'),
+      summary: t('tickets.detail.toast.deleteFailedSummary'),
+      detail: extractErrorMessage(error, t('tickets.detail.toast.deleteFailedDetail')),
       life: 4200,
     })
   }
@@ -344,13 +356,13 @@ onMounted(loadTicketData)
   <div class="ticket-detail-page">
     <div class="page-toolbar">
       <Button
-        label="Back to Tickets"
+        :label="t('common.backToTickets')"
         icon="pi pi-arrow-left"
         text
         @click="router.push('/tickets')"
       />
       <Button
-        label="Refresh"
+        :label="t('common.refresh')"
         icon="pi pi-refresh"
         severity="secondary"
         :loading="ticketStore.isLoadingTicket || isLoadingMessages"
@@ -374,19 +386,19 @@ onMounted(loadTicketData)
           </template>
           <template #content>
             <div class="meta-grid">
-              <div><strong>Created By:</strong> {{ userLabel(ticket.created_by, ticket.created_by_email) }}</div>
-              <div><strong>Assigned To:</strong> {{ userLabel(ticket.assigned_to, ticket.assigned_to_email) }}</div>
-              <div><strong>Created At:</strong> {{ new Date(ticket.created_at).toLocaleString() }}</div>
-              <div><strong>Updated At:</strong> {{ new Date(ticket.updated_at).toLocaleString() }}</div>
+              <div><strong>{{ t('tickets.detail.meta.createdBy') }}</strong> {{ userLabel(ticket.created_by, ticket.created_by_email) }}</div>
+              <div><strong>{{ t('tickets.detail.meta.assignedTo') }}</strong> {{ userLabel(ticket.assigned_to, ticket.assigned_to_email) }}</div>
+              <div><strong>{{ t('tickets.detail.meta.createdAt') }}</strong> {{ new Date(ticket.created_at).toLocaleString(locale) }}</div>
+              <div><strong>{{ t('tickets.detail.meta.updatedAt') }}</strong> {{ new Date(ticket.updated_at).toLocaleString(locale) }}</div>
             </div>
 
-            <Panel header="Description" toggleable class="description-panel">
+            <Panel :header="t('tickets.detail.description')" toggleable class="description-panel">
               <div class="markdown-body" v-html="renderedDescription" />
             </Panel>
           </template>
         </Card>
 
-        <Panel header="Messages Thread" class="messages-panel">
+        <Panel :header="t('tickets.detail.messagesThread')" class="messages-panel">
           <template #icons>
             <Button
               icon="pi pi-refresh"
@@ -415,41 +427,41 @@ onMounted(loadTicketData)
       </div>
 
       <div class="sidebar-column">
-        <Panel header="Actions">
+        <Panel :header="t('tickets.detail.panelActions')">
           <div class="action-group">
-            <h4 style="margin-top: 10px;">Update Status</h4>
+            <h4 style="margin-top: 10px;">{{ t('tickets.detail.updateStatus') }}</h4>
             <Dropdown
               v-model="selectedStatus"
               :options="statusOptions"
               option-label="label"
               option-value="value"
-              placeholder="Select status"
+              :placeholder="t('tickets.detail.selectStatus')"
               class="w-full"
               :disabled="!canUpdateStatus"
             />
           </div>
 
           <div class="action-group">
-            <h4>Update Priority</h4>
+            <h4>{{ t('tickets.detail.updatePriority') }}</h4>
             <Dropdown
               v-model="selectedPriority"
               :options="priorityOptions"
               option-label="label"
               option-value="value"
-              placeholder="Select priority"
+              :placeholder="t('tickets.detail.selectPriority')"
               class="w-full"
               :disabled="!canUpdatePriority"
             />
           </div>
 
           <div class="action-group">
-            <h4>Assign Agent</h4>
+            <h4>{{ t('tickets.detail.assignAgent') }}</h4>
             <Dropdown
               v-model="selectedAgent"
               :options="agentOptions"
               option-label="label"
               option-value="value"
-              placeholder="Select an agent"
+              :placeholder="t('tickets.detail.selectAgent')"
               class="w-full"
               :disabled="!canAssignAgent"
             />
@@ -457,7 +469,7 @@ onMounted(loadTicketData)
 
           <div class="action-group">
             <Button
-              label="Save Changes"
+              :label="t('common.saveChanges')"
               icon="pi pi-save"
               class="w-full"
               :disabled="!canSaveAny || !hasPendingChanges"
@@ -467,9 +479,9 @@ onMounted(loadTicketData)
           </div>
 
           <div v-if="canDeleteTicket" class="action-group">
-            <h4>Danger Zone</h4>
+            <h4>{{ t('tickets.detail.dangerZone') }}</h4>
             <Button
-              label="Delete Ticket"
+              :label="t('tickets.detail.deleteTicket')"
               severity="danger"
               outlined
               class="w-full"
@@ -482,9 +494,9 @@ onMounted(loadTicketData)
     </div>
 
     <Card v-else>
-      <template #title>Ticket not found</template>
+      <template #title>{{ t('tickets.detail.notFoundTitle') }}</template>
       <template #content>
-        <p>This ticket is unavailable or you do not have permission to access it.</p>
+        <p>{{ t('tickets.detail.notFoundDescription') }}</p>
       </template>
     </Card>
   </div>

@@ -3,36 +3,39 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
+import { useI18n } from 'vue-i18n'
 
 import { useAuthStore } from '../stores/authStore'
+import LanguageSwitcher from './LanguageSwitcher.vue'
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const isLoggingOut = ref(false)
 
 const currentPageTitle = computed(() => {
-  const title = route.meta?.title
-  if (typeof title === 'string' && title.trim().length > 0) {
-    return title
+  const titleKey = route.meta?.titleKey
+  if (typeof titleKey === 'string' && titleKey.trim().length > 0) {
+    return t(titleKey)
   }
 
   if (typeof route.name === 'string' && route.name.length > 0) {
     return route.name
   }
 
-  return 'Ticketing System'
+  return t('app.name')
 })
 
 const userInfo = computed(() => {
   if (!authStore.user) {
-    return 'Guest'
+    return t('app.guest')
   }
 
-  const role = authStore.user.role ? ` (${authStore.user.role})` : ''
-  return `${authStore.user.email}`
+  const role = authStore.user.role ? ` (${t(`user.roles.${authStore.user.role}`)})` : ''
+  return `${authStore.user.email}${role}`
 })
 
 const canLogout = computed(() => authStore.isAuthenticated)
@@ -48,8 +51,8 @@ async function onLogout() {
     await authStore.logout()
     toast.add({
       severity: 'success',
-      summary: 'Logged out',
-      detail: 'You have been logged out.',
+      summary: t('auth.logout.summary'),
+      detail: t('auth.logout.detail'),
       life: 2200,
     })
     await router.push('/login')
@@ -67,6 +70,7 @@ async function onLogout() {
 
     <div class="header-right">
       <span class="user-info">{{ userInfo }}</span>
+      <LanguageSwitcher v-if="canLogout" />
       <Button
         v-if="canLogout"
         icon="pi pi-sign-out"

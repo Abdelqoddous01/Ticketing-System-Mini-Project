@@ -9,6 +9,7 @@ import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ToggleButton from 'primevue/togglebutton'
+import { useI18n } from 'vue-i18n'
 
 import UserFormDialog from '../components/UserFormDialog.vue'
 import {
@@ -21,6 +22,7 @@ import {
 } from '../services/userService'
 
 const toast = useToast()
+const { t } = useI18n()
 
 const users = ref([])
 const isLoadingUsers = ref(false)
@@ -32,7 +34,12 @@ const dialogMode = ref('create')
 const selectedUser = ref(null)
 const togglingUserIds = ref([])
 
-const roleOptions = USER_ROLE_OPTIONS
+const roleOptions = computed(() =>
+  USER_ROLE_OPTIONS.map((option) => ({
+    ...option,
+    label: t(`user.roles.${option.value}`),
+  })),
+)
 
 const filteredUsers = computed(() => {
   const query = emailSearch.value.trim().toLowerCase()
@@ -107,6 +114,10 @@ function roleSeverity(role) {
   return 'info'
 }
 
+function roleLabel(role) {
+  return t(`user.roles.${role}`)
+}
+
 function activeSeverity(isActive) {
   return isActive ? 'success' : 'secondary'
 }
@@ -137,8 +148,8 @@ async function loadUsers() {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Failed to load users',
-      detail: extractErrorMessage(error, 'Unable to fetch users.'),
+      summary: t('adminUsers.toast.loadFailedSummary'),
+      detail: extractErrorMessage(error, t('adminUsers.toast.loadFailedDetail')),
       life: 4200,
     })
   } finally {
@@ -172,8 +183,8 @@ async function onSubmitForm(payload) {
 
       toast.add({
         severity: 'success',
-        summary: 'User created',
-        detail: `Created ${createdUser.email}.`,
+        summary: t('adminUsers.toast.userCreatedSummary'),
+        detail: t('adminUsers.created', { email: createdUser.email }),
         life: 2800,
       })
     } else if (selectedUser.value?.id) {
@@ -191,8 +202,8 @@ async function onSubmitForm(payload) {
 
       toast.add({
         severity: 'success',
-        summary: 'User updated',
-        detail: `Updated ${updatedUser.email}.`,
+        summary: t('adminUsers.toast.userUpdatedSummary'),
+        detail: t('adminUsers.updated', { email: updatedUser.email }),
         life: 2800,
       })
     }
@@ -201,8 +212,12 @@ async function onSubmitForm(payload) {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: dialogMode.value === 'create' ? 'Create failed' : 'Update failed',
-      detail: extractErrorMessage(error, 'Unable to save user changes.'),
+      summary: t(
+        dialogMode.value === 'create'
+          ? 'adminUsers.toast.createFailedSummary'
+          : 'adminUsers.toast.updateFailedSummary',
+      ),
+      detail: extractErrorMessage(error, t('adminUsers.toast.saveFailedDetail')),
       life: 4500,
     })
   } finally {
@@ -224,8 +239,8 @@ async function onToggleIsActive(user, nextValue) {
 
       toast.add({
         severity: 'success',
-        summary: 'User activated',
-        detail: `${activatedUser.email} is active again.`,
+        summary: t('adminUsers.toast.activatedSummary'),
+        detail: t('adminUsers.activated', { email: activatedUser.email }),
         life: 2600,
       })
     } else {
@@ -235,16 +250,16 @@ async function onToggleIsActive(user, nextValue) {
 
       toast.add({
         severity: 'warn',
-        summary: 'User deactivated',
-        detail: `${deactivatedUser.email} is now inactive.`,
+        summary: t('adminUsers.toast.deactivatedSummary'),
+        detail: t('adminUsers.deactivated', { email: deactivatedUser.email }),
         life: 2800,
       })
     }
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Status update failed',
-      detail: extractErrorMessage(error, 'Unable to update user active status.'),
+      summary: t('adminUsers.toast.statusUpdateFailedSummary'),
+      detail: extractErrorMessage(error, t('adminUsers.toast.statusUpdateFailedDetail')),
       life: 4500,
     })
   } finally {
@@ -275,7 +290,7 @@ onMounted(loadUsers)
                 <InputText
                   v-model="emailSearch"
                   type="text"
-                  placeholder="Search by email"
+                  :placeholder="t('adminUsers.searchByEmail')"
                   class="search-email"
                 />
                 <Dropdown
@@ -283,7 +298,7 @@ onMounted(loadUsers)
                   :options="roleOptions"
                   option-label="label"
                   option-value="value"
-                  placeholder="Filter by role"
+                  :placeholder="t('adminUsers.filterByRole')"
                   show-clear
                   class="filter-select"
                 />
@@ -291,14 +306,14 @@ onMounted(loadUsers)
 
               <div class="table-right-controls">
                 <Button
-                  label="Refresh"
+                  :label="t('common.refresh')"
                   icon="pi pi-refresh"
                   severity="secondary"
                   :loading="isLoadingUsers"
                   @click="loadUsers"
                 />
                 <Button
-                  label="Create User"
+                  :label="t('adminUsers.createUser')"
                   icon="pi pi-plus"
                   @click="openCreateDialog"
                 />
@@ -307,32 +322,32 @@ onMounted(loadUsers)
           </template>
 
           <template #empty>
-            No users found.
+            {{ t('adminUsers.empty') }}
           </template>
 
-          <Column field="email" header="Email" sortable />
+          <Column field="email" :header="t('adminUsers.columnEmail')" sortable />
 
-          <Column field="role" header="Role" sortable>
+          <Column field="role" :header="t('adminUsers.columnRole')" sortable>
             <template #body="{ data }">
-              <Tag :value="data.role" :severity="roleSeverity(data.role)" />
+              <Tag :value="roleLabel(data.role)" :severity="roleSeverity(data.role)" />
             </template>
           </Column>
 
-          <Column field="is_active" header="Status" sortable>
+          <Column field="is_active" :header="t('adminUsers.columnStatus')" sortable>
             <template #body="{ data }">
               <Tag
-                :value="data.is_active ? 'Active' : 'Inactive'"
+                :value="data.is_active ? t('common.active') : t('common.inactive')"
                 :severity="activeSeverity(data.is_active)"
               />
             </template>
           </Column>
 
-          <Column header="Active Toggle">
+          <Column :header="t('adminUsers.columnActiveToggle')">
             <template #body="{ data }">
               <ToggleButton
                 :model-value="data.is_active"
-                on-label="Active"
-                off-label="Inactive"
+                :on-label="t('common.active')"
+                :off-label="t('common.inactive')"
                 on-icon="pi pi-check"
                 off-icon="pi pi-times"
                 :disabled="isTogglingUser(data.id)"
@@ -341,10 +356,10 @@ onMounted(loadUsers)
             </template>
           </Column>
 
-          <Column header="Actions">
+          <Column :header="t('common.actions')">
             <template #body="{ data }">
               <Button
-                label="Edit User"
+                :label="t('adminUsers.editUser')"
                 icon="pi pi-pencil"
                 text
                 @click="openEditDialog(data)"

@@ -8,6 +8,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
+import { useI18n } from 'vue-i18n'
 
 import { useAuthStore } from '../stores/authStore'
 import { useTicketStore } from '../stores/ticketStore'
@@ -19,13 +20,24 @@ const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
 const ticketStore = useTicketStore()
+const { t, locale } = useI18n()
 
 const searchTerm = ref('')
 const selectedStatusFilter = ref(null)
 const selectedPriorityFilter = ref(null)
 
-const statusOptions = TICKET_STATUS_OPTIONS
-const priorityOptions = TICKET_PRIORITY_OPTIONS
+const statusOptions = computed(() =>
+  TICKET_STATUS_OPTIONS.map((option) => ({
+    ...option,
+    label: t(`tickets.status.${option.value}`),
+  })),
+)
+const priorityOptions = computed(() =>
+  TICKET_PRIORITY_OPTIONS.map((option) => ({
+    ...option,
+    label: t(`tickets.priority.${option.value}`),
+  })),
+)
 
 const isCustomer = computed(() => authStore.user?.role === 'customer')
 
@@ -67,10 +79,10 @@ const filteredRows = computed(() => {
 
 function formatAssignedTo(assignedTo, assignedToEmail) {
   if (!assignedTo) {
-    return 'Unassigned'
+    return t('common.unassigned')
   }
 
-  return assignedToEmail || `Agent #${assignedTo}`
+  return assignedToEmail || t('tickets.list.assignedAgent', { id: assignedTo })
 }
 
 function formatDate(value) {
@@ -78,7 +90,7 @@ function formatDate(value) {
     return '-'
   }
 
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString(locale.value)
 }
 
 function extractErrorMessage(error, fallback) {
@@ -109,8 +121,8 @@ async function loadTickets() {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Failed to load tickets',
-      detail: extractErrorMessage(error, 'Unable to fetch tickets.'),
+      summary: t('tickets.list.toast.loadFailedSummary'),
+      detail: extractErrorMessage(error, t('tickets.list.toast.loadFailedDetail')),
       life: 4200,
     })
   }
@@ -148,7 +160,7 @@ onMounted(loadTickets)
                   <i class="pi pi-search search-icon" />
                   <InputText
                     v-model="searchTerm"
-                    placeholder="Search tickets"
+                    :placeholder="t('tickets.list.searchPlaceholder')"
                     class="search-input"
                   />
                 </div>
@@ -158,7 +170,7 @@ onMounted(loadTickets)
                   :options="statusOptions"
                   option-label="label"
                   option-value="value"
-                  placeholder="Filter status"
+                  :placeholder="t('tickets.list.filterStatus')"
                   show-clear
                   class="filter-select"
                 />
@@ -167,7 +179,7 @@ onMounted(loadTickets)
                   :options="priorityOptions"
                   option-label="label"
                   option-value="value"
-                  placeholder="Filter priority"
+                  :placeholder="t('tickets.list.filterPriority')"
                   show-clear
                   class="filter-select"
                 />
@@ -175,7 +187,7 @@ onMounted(loadTickets)
 
               <div class="table-right-controls">
                 <Button
-                  label="Refresh"
+                  :label="t('common.refresh')"
                   icon="pi pi-refresh"
                   severity="secondary"
                   :loading="ticketStore.isLoadingList"
@@ -183,7 +195,7 @@ onMounted(loadTickets)
                 />
                 <Button
                   v-if="isCustomer"
-                  label="Create Ticket"
+                  :label="t('tickets.list.create')"
                   icon="pi pi-plus"
                   @click="goToCreate"
                 />
@@ -192,10 +204,10 @@ onMounted(loadTickets)
           </template>
 
           <template #empty>
-            No tickets found.
+            {{ t('tickets.list.empty') }}
           </template>
 
-          <Column field="title" header="Title" sortable>
+          <Column field="title" :header="t('tickets.list.columnTitle')" sortable>
             <template #body="{ data }">
               <Button
                 :label="data.title"
@@ -206,34 +218,34 @@ onMounted(loadTickets)
             </template>
           </Column>
 
-          <Column field="status" header="Status" sortable>
+          <Column field="status" :header="t('tickets.list.columnStatus')" sortable>
             <template #body="{ data }">
               <StatusBadge :value="data.status" />
             </template>
           </Column>
 
-          <Column field="priority" header="Priority" sortable>
+          <Column field="priority" :header="t('tickets.list.columnPriority')" sortable>
             <template #body="{ data }">
               <PriorityBadge :value="data.priority" />
             </template>
           </Column>
 
-          <Column field="assigned_label" header="Assigned To" sortable>
+          <Column field="assigned_label" :header="t('tickets.list.columnAssignedTo')" sortable>
             <template #body="{ data }">
               {{ data.assigned_label }}
             </template>
           </Column>
 
-          <Column field="created_at" header="Created At" sortable>
+          <Column field="created_at" :header="t('tickets.list.columnCreatedAt')" sortable>
             <template #body="{ data }">
               {{ formatDate(data.created_at) }}
             </template>
           </Column>
 
-          <Column header="Actions">
+          <Column :header="t('common.actions')">
             <template #body="{ data }">
               <Button
-                label="View"
+                :label="t('tickets.list.view')"
                 icon="pi pi-arrow-right"
                 text
                 @click="goToDetail(data.id)"

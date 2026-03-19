@@ -2,6 +2,8 @@
 import { nextTick, ref, watch } from 'vue'
 import Divider from 'primevue/divider'
 import ProgressSpinner from 'primevue/progressspinner'
+import { useI18n } from 'vue-i18n'
+
 import MessageItem from './MessageItem.vue'
 
 const props = defineProps({
@@ -18,6 +20,7 @@ const props = defineProps({
     default: -1,
   },
 })
+const { t } = useI18n()
 
 const containerRef = ref(null)
 
@@ -49,7 +52,7 @@ watch(
       <ProgressSpinner style="width: 28px; height: 28px" />
     </div>
     <div v-else-if="messages.length === 0" class="empty-state">
-      No messages yet.
+      {{ t('messages.empty') }}
     </div>
     <template v-else>
       <div v-for="(message, index) in messages" :key="message.id" class="message-row">

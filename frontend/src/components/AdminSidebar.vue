@@ -1,8 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
+const { t } = useI18n()
 
 const isTicketsRoute = computed(
   () => route.path === '/tickets' || route.path.startsWith('/tickets/'),
@@ -16,7 +18,7 @@ const isUsersRoute = computed(
 <template>
   <aside class="admin-sidebar">
     <div class="sidebar-brand">
-      <div class="app-name">Ticketing sys</div>
+      <div class="app-name">{{ t('app.shortName') }}</div>
   
     </div>
 
@@ -29,7 +31,7 @@ const isUsersRoute = computed(
         :class="{ active: isTicketsRoute }"
       >
         <i class="pi pi-ticket" />
-        <span>Tickets</span>
+        <span>{{ t('routes.tickets') }}</span>
       </RouterLink>
 
       <RouterLink
@@ -38,7 +40,7 @@ const isUsersRoute = computed(
         :class="{ active: isUsersRoute }"
       >
         <i class="pi pi-users" />
-        <span>Users</span>
+        <span>{{ t('routes.adminUsers') }}</span>
       </RouterLink>
     </nav>
   </aside>

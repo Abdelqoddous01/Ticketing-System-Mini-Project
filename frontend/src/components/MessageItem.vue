@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
 import { renderMarkdown } from '../utils/markdown'
 
 const props = defineProps({
@@ -12,6 +14,7 @@ const props = defineProps({
     default: -1,
   },
 })
+const { t, locale } = useI18n()
 
 const isCurrentUser = computed(() => {
   return props.currentUserId > 0 && props.message.author === props.currentUserId
@@ -19,7 +22,7 @@ const isCurrentUser = computed(() => {
 
 const authorLabel = computed(() => {
   if (isCurrentUser.value) {
-    return 'You'
+    return t('messages.you')
   }
 
   if (props.message.author_email) {
@@ -27,10 +30,10 @@ const authorLabel = computed(() => {
   }
 
   if (props.message.author) {
-    return `User #${props.message.author}`
+    return t('user.fallback.indexed', { id: props.message.author })
   }
 
-  return 'Unknown user'
+  return t('messages.unknownUser')
 })
 
 const renderedBody = computed(() => renderMarkdown(props.message.body || ''))
@@ -40,10 +43,12 @@ const createdAtLabel = computed(() => {
     return '-'
   }
 
-  return new Date(props.message.created_at).toLocaleString()
+  return new Date(props.message.created_at).toLocaleString(locale.value)
 })
 
-const statusLabel = computed(() => (props.message.isOptimistic ? 'Sending...' : createdAtLabel.value))
+const statusLabel = computed(() =>
+  props.message.isOptimistic ? t('messages.sending') : createdAtLabel.value,
+)
 </script>
 
 <template>

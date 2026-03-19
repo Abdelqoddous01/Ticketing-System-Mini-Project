@@ -7,6 +7,7 @@ import Panel from 'primevue/panel'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
+import { useI18n } from 'vue-i18n'
 
 import { useAuthStore } from '../stores/authStore'
 import { useTicketStore } from '../stores/ticketStore'
@@ -16,6 +17,7 @@ const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
 const ticketStore = useTicketStore()
+const { t } = useI18n()
 
 const isSubmitting = ref(false)
 
@@ -66,8 +68,8 @@ async function onSubmit() {
   if (!payload.title || !payload.description) {
     toast.add({
       severity: 'warn',
-      summary: 'Missing fields',
-      detail: 'Title and description are required.',
+      summary: t('tickets.create.toast.missingFieldsSummary'),
+      detail: t('tickets.create.toast.missingFieldsDetail'),
       life: 3200,
     })
     return
@@ -80,8 +82,8 @@ async function onSubmit() {
 
     toast.add({
       severity: 'success',
-      summary: 'Ticket created',
-      detail: 'Your ticket has been created.',
+      summary: t('tickets.create.toast.createdSummary'),
+      detail: t('tickets.create.toast.createdDetail'),
       life: 2600,
     })
 
@@ -89,8 +91,8 @@ async function onSubmit() {
   } catch (error) {
     toast.add({
       severity: 'error',
-      summary: 'Create ticket failed',
-      detail: extractErrorMessage(error, 'Unable to create the ticket.'),
+      summary: t('tickets.create.toast.failedSummary'),
+      detail: extractErrorMessage(error, t('tickets.create.toast.failedDetail')),
       life: 4500,
     })
   } finally {
@@ -105,8 +107,8 @@ onMounted(async () => {
 
   toast.add({
     severity: 'warn',
-    summary: 'Access denied',
-    detail: 'Only customers can create tickets.',
+    summary: t('tickets.create.toast.accessDeniedSummary'),
+    detail: t('tickets.create.toast.accessDeniedDetail'),
     life: 3400,
   })
   await router.replace('/tickets')
@@ -116,48 +118,48 @@ onMounted(async () => {
 <template>
   <div class="ticket-create-page">
     <Card>
-      <template #title>Create Ticket</template>
+      <template #title>{{ t('tickets.create.title') }}</template>
       <template #content>
         <form class="ticket-form" @submit.prevent="onSubmit">
           <div class="field">
-            <label for="ticket-title">Title</label>
+            <label for="ticket-title">{{ t('tickets.create.titleLabel') }}</label>
             <InputText
               id="ticket-title"
               v-model="form.title"
               maxlength="255"
-              placeholder="Short summary of your issue"
+              :placeholder="t('tickets.create.titlePlaceholder')"
             />
           </div>
 
           <div class="field">
-            <label for="ticket-description">Description (Markdown supported)</label>
+            <label for="ticket-description">{{ t('tickets.create.descriptionLabel') }}</label>
             <Textarea
               id="ticket-description"
               v-model="form.description"
               rows="10"
               auto-resize
-              placeholder="Describe your issue. You can use Markdown."
+              :placeholder="t('tickets.create.descriptionPlaceholder')"
             />
           </div>
 
           <div class="form-actions">
             <Button
               type="button"
-              label="Cancel"
+              :label="t('common.cancel')"
               severity="secondary"
               outlined
               @click="router.push('/tickets')"
             />
             <Button
               type="submit"
-              label="Create Ticket"
+              :label="t('tickets.create.submit')"
               icon="pi pi-check"
               :loading="isSubmitting || ticketStore.isSaving"
             />
           </div>
         </form>
 
-        <Panel header="Markdown Preview" class="preview-panel">
+        <Panel :header="t('tickets.create.previewHeader')" class="preview-panel">
           <div class="markdown-body" v-html="renderedPreview" />
         </Panel>
       </template>
