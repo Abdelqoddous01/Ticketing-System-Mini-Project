@@ -3,6 +3,8 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import RegistrationView from '../views/RegistrationView.vue'
 import TicketListView from '../views/TicketListView.vue'
+import TicketDetailView from '../views/TicketDetailView.vue'
+import TicketCreateView from '../views/TicketCreateView.vue'
 import { useAuthStore } from '../stores/authStore'
 import { pinia } from '../stores/pinia'
 
@@ -15,18 +17,31 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { public: true },
+    meta: { public: true, title: 'Login' },
   },
   {
     path: '/register',
     name: 'register',
     component: RegistrationView,
-    meta: { public: true },
+    meta: { public: true, title: 'Register' },
   },
   {
     path: '/tickets',
     name: 'tickets',
     component: TicketListView,
+    meta: { title: 'Tickets' },
+  },
+  {
+    path: '/tickets/create',
+    name: 'ticket-create',
+    component: TicketCreateView,
+    meta: { roles: ['customer'], title: 'Create Ticket' },
+  },
+  {
+    path: '/tickets/:id',
+    name: 'ticket-detail',
+    component: TicketDetailView,
+    meta: { title: 'Ticket Details' },
   },
   {
     path: '/:pathMatch(.*)*',
@@ -58,6 +73,14 @@ router.beforeEach(async (to) => {
     return {
       path: '/login',
       query: { redirect: to.fullPath },
+    }
+  }
+
+  const requiredRoles = (Array.isArray(to.meta.roles) ? to.meta.roles : []) as string[]
+  if (requiredRoles.length > 0) {
+    const role = authStore.user?.role
+    if (!role || !requiredRoles.includes(role)) {
+      return '/tickets'
     }
   }
 

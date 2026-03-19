@@ -1,10 +1,13 @@
 <script setup>
-import { onBeforeUnmount, onMounted } from 'vue'
-import { RouterView } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import AppLayout from './layouts/AppLayout.vue'
 
 const toast = useToast()
+const route = useRoute()
+const isPublicRoute = computed(() => Boolean(route.meta?.public))
 
 function onSessionExpired(event) {
   const detail = event?.detail?.message || 'Session expired, please log in again.'
@@ -28,5 +31,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Toast position="top-right" />
-  <RouterView />
+  <AppLayout :show-header="!isPublicRoute">
+    <RouterView />
+  </AppLayout>
 </template>
