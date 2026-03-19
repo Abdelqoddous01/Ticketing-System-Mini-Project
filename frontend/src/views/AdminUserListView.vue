@@ -257,7 +257,7 @@ onMounted(loadUsers)
 
 <template>
   <div class="admin-users-page">
-    <Card>
+    <Card class="users-table-card">
       <template #content>
         <DataTable
           :value="filteredUsers"
@@ -371,6 +371,11 @@ onMounted(loadUsers)
   padding: 2rem 1rem;
 }
 
+.users-table-card :deep(.p-card-body),
+.users-table-card :deep(.p-card-content) {
+  padding: 0;
+}
+
 .table-header {
   display: flex;
   align-items: center;
@@ -396,6 +401,6 @@ onMounted(loadUsers)
 }
 
 .search-email {
-  min-width: 240px;
+  min-width: 360px;
 }
 </style>

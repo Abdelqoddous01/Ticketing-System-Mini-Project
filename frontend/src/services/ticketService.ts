@@ -13,7 +13,9 @@ export interface Ticket {
   status: TicketStatus
   priority: TicketPriority
   created_by: number
+  created_by_email?: string | null
   assigned_to: number | null
+  assigned_to_email?: string | null
   created_at: string
   updated_at: string
 }

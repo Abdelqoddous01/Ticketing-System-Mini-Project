@@ -83,8 +83,12 @@ const hasPendingChanges = computed(() => {
   return Boolean(statusChanged || priorityChanged || assignmentChanged)
 })
 
-function userLabel(userId) {
-  return userId ? `User #${userId}` : 'Unassigned'
+function userLabel(userId, userEmail = null) {
+  if (!userId) {
+    return 'Unassigned'
+  }
+
+  return userEmail || `User #${userId}`
 }
 
 function extractErrorMessage(error, fallback) {
@@ -370,8 +374,8 @@ onMounted(loadTicketData)
           </template>
           <template #content>
             <div class="meta-grid">
-              <div><strong>Created By:</strong> {{ userLabel(ticket.created_by) }}</div>
-              <div><strong>Assigned To:</strong> {{ userLabel(ticket.assigned_to) }}</div>
+              <div><strong>Created By:</strong> {{ userLabel(ticket.created_by, ticket.created_by_email) }}</div>
+              <div><strong>Assigned To:</strong> {{ userLabel(ticket.assigned_to, ticket.assigned_to_email) }}</div>
               <div><strong>Created At:</strong> {{ new Date(ticket.created_at).toLocaleString() }}</div>
               <div><strong>Updated At:</strong> {{ new Date(ticket.updated_at).toLocaleString() }}</div>
             </div>
@@ -413,8 +417,7 @@ onMounted(loadTicketData)
       <div class="sidebar-column">
         <Panel header="Actions">
           <div class="action-group">
-            <h4>Update Status</h4>
-            <p class="action-note">Allowed for agent and admin.</p>
+            <h4 style="margin-top: 10px;">Update Status</h4>
             <Dropdown
               v-model="selectedStatus"
               :options="statusOptions"
@@ -428,7 +431,6 @@ onMounted(loadTicketData)
 
           <div class="action-group">
             <h4>Update Priority</h4>
-            <p class="action-note">Allowed for admin only.</p>
             <Dropdown
               v-model="selectedPriority"
               :options="priorityOptions"
@@ -442,7 +444,6 @@ onMounted(loadTicketData)
 
           <div class="action-group">
             <h4>Assign Agent</h4>
-            <p class="action-note">Allowed for admin only.</p>
             <Dropdown
               v-model="selectedAgent"
               :options="agentOptions"

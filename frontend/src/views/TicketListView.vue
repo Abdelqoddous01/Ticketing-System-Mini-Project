@@ -32,7 +32,7 @@ const isCustomer = computed(() => authStore.user?.role === 'customer')
 const tableRows = computed(() =>
   ticketStore.tickets.map((ticket) => ({
     ...ticket,
-    assigned_label: formatAssignedTo(ticket.assigned_to),
+    assigned_label: formatAssignedTo(ticket.assigned_to, ticket.assigned_to_email),
   })),
 )
 
@@ -65,8 +65,12 @@ const filteredRows = computed(() => {
   })
 })
 
-function formatAssignedTo(assignedTo) {
-  return assignedTo ? `Agent #${assignedTo}` : 'Unassigned'
+function formatAssignedTo(assignedTo, assignedToEmail) {
+  if (!assignedTo) {
+    return 'Unassigned'
+  }
+
+  return assignedToEmail || `Agent #${assignedTo}`
 }
 
 function formatDate(value) {
@@ -125,7 +129,7 @@ onMounted(loadTickets)
 
 <template>
   <div class="tickets-page">
-    <Card>
+    <Card class="users-table-card">
       <template #content>
         <DataTable
           :value="filteredRows"
@@ -299,5 +303,10 @@ onMounted(loadTickets)
 
 .ticket-link {
   padding-left: 0;
+}
+
+.users-table-card :deep(.p-card-body),
+.users-table-card :deep(.p-card-content) {
+  padding: 0;
 }
 </style>

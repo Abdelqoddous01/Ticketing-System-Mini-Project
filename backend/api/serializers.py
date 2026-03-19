@@ -33,9 +33,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+    assigned_to_email = serializers.EmailField(source='assigned_to.email', read_only=True)
+
     class Meta:
         model = Ticket
-        fields = ['id', 'title', 'description', 'status', 'priority', 'created_by', 'assigned_to', 'created_at', 'updated_at']
+        fields = ['id','title','description','status','priority','created_by','created_by_email','assigned_to','assigned_to_email','created_at','updated_at',]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
 
