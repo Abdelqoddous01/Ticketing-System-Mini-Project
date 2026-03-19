@@ -5,6 +5,7 @@ import RegistrationView from '../views/RegistrationView.vue'
 import TicketListView from '../views/TicketListView.vue'
 import TicketDetailView from '../views/TicketDetailView.vue'
 import TicketCreateView from '../views/TicketCreateView.vue'
+import AdminUserListView from '../views/AdminUserListView.vue'
 import { useAuthStore } from '../stores/authStore'
 import { pinia } from '../stores/pinia'
 
@@ -42,6 +43,12 @@ const routes: RouteRecordRaw[] = [
     name: 'ticket-detail',
     component: TicketDetailView,
     meta: { title: 'Ticket Details' },
+  },
+  {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: AdminUserListView,
+    meta: { roles: ['admin'], title: 'User Management' },
   },
   {
     path: '/:pathMatch(.*)*',
