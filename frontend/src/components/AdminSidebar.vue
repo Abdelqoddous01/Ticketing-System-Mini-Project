@@ -15,7 +15,12 @@ const isUsersRoute = computed(
 
 <template>
   <aside class="admin-sidebar">
-    <div class="sidebar-title">Admin</div>
+    <div class="sidebar-brand">
+      <div class="app-name">Ticketing sys</div>
+  
+    </div>
+
+    <hr class="sidebar-divider" />
 
     <nav class="sidebar-nav">
       <RouterLink
@@ -41,7 +46,13 @@ const isUsersRoute = computed(
 
 <style scoped>
 .admin-sidebar {
-  width: 220px;
+  width: 250px;
+  min-width: 250px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  overflow-y: auto;
   border-right: 1px solid #e5e7eb;
   background:
     radial-gradient(circle at 10% 20%, #e0f2fe 0%, transparent 38%),
@@ -49,18 +60,35 @@ const isUsersRoute = computed(
   padding: 1rem 0.7rem;
 }
 
+.sidebar-brand {
+  padding: 0.2rem 0.55rem 0.7rem;
+}
+
+.app-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1d4ed8;
+}
+
 .sidebar-title {
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #6b7280;
-  margin: 0.25rem 0.55rem 0.8rem;
+  margin: 0.25rem 0 0;
   text-transform: uppercase;
+}
+
+.sidebar-divider {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
 }
 
 .sidebar-nav {
   display: grid;
   gap: 0.35rem;
+  margin-top: 20px;
 }
 
 .sidebar-link {
@@ -88,6 +116,11 @@ const isUsersRoute = computed(
 @media (max-width: 900px) {
   .admin-sidebar {
     width: 100%;
+    min-width: 0;
+    height: auto;
+    position: static;
+    align-self: stretch;
+    overflow: visible;
     border-right: 0;
     border-bottom: 1px solid #e5e7eb;
     padding: 0.7rem;
@@ -95,6 +128,10 @@ const isUsersRoute = computed(
 
   .sidebar-title {
     margin-bottom: 0.5rem;
+  }
+
+  .sidebar-divider {
+    margin-bottom: 0.6rem;
   }
 
   .sidebar-nav {

@@ -131,6 +131,9 @@ async function onSubmit() {
   display: grid;
   place-items: center;
   padding: 1rem;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(224, 242, 254, 0.72) 0%, transparent 40%),
+    #ffffff;
 }
 
 .auth-card {
@@ -148,6 +151,11 @@ async function onSubmit() {
   gap: 0.4rem;
 }
 
+.field label {
+  color: #334155;
+  font-weight: 600;
+}
+
 .field :deep(input) {
   width: 100%;
 }
@@ -155,6 +163,11 @@ async function onSubmit() {
 .auth-link {
   margin-top: 1rem;
   text-align: center;
+  color: #64748b;
+}
+
+.auth-link a {
+  color: #1d4ed8;
 }
 
 .w-full {

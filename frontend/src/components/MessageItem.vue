@@ -79,8 +79,8 @@ const statusLabel = computed(() => (props.message.isOptimistic ? 'Sending...' : 
   width: min(100%, 740px);
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  color: #000000;
-  font-weight: 600;
+  color: #334155;
+  font-weight: 500;
   border-radius: 0.85rem;
   padding: 0.75rem 0.9rem;
 }

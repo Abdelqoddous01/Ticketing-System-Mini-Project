@@ -524,6 +524,19 @@ onMounted(loadTicketData)
   gap: 0.6rem;
 }
 
+.meta-grid > div {
+  padding: 0.62rem 0.8rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #475569;
+}
+
+.meta-grid strong {
+  color: #334155;
+  margin-right: 0.25rem;
+}
+
 .description-panel {
   margin-top: 1rem;
 }

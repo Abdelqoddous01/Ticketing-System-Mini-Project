@@ -17,31 +17,20 @@ const authStore = useAuthStore()
 const isAdmin = computed(
   () => props.showHeader && authStore.isAuthenticated && authStore.user?.role === 'admin',
 )
-
-const currentPageTitle = computed(() => {
-  const title = route.meta?.title
-  if (typeof title === 'string' && title.trim().length > 0) {
-    return title
-  }
-
-  if (typeof route.name === 'string' && route.name.length > 0) {
-    return route.name
-  }
-
-  return 'Ticketing System'
-})
 </script>
 
 <template>
   <div class="app-layout">
-    <AppHeader v-if="showHeader" />
-
-    <div class="app-shell">
+    <div class="app-shell" :class="{ 'with-sidebar': isAdmin }">
       <AdminSidebar v-if="isAdmin" />
 
-      <main class="app-content">
-        <slot />
-      </main>
+      <div class="app-main">
+        <AppHeader v-if="showHeader" />
+
+        <main class="app-content">
+          <slot />
+        </main>
+      </div>
     </div>
   </div>
 </template>
@@ -49,14 +38,19 @@ const currentPageTitle = computed(() => {
 <style scoped>
 .app-layout {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 .app-shell {
-  flex: 1;
-  min-height: 0;
   display: flex;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-content {
@@ -67,6 +61,10 @@ const currentPageTitle = computed(() => {
 @media (max-width: 900px) {
   .app-shell {
     flex-direction: column;
+  }
+
+  .app-main {
+    min-height: 0;
   }
 }
 </style>
