@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import AppLayout from './layouts/AppLayout.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import { useAuthStore } from './stores/authStore'
+import { useAgentNotifications } from './composables/useAgentNotifications'
 
 const toast = useToast()
 const route = useRoute()
@@ -15,6 +16,8 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const isPublicRoute = computed(() => Boolean(route.meta?.public))
 const showFloatingLanguageSwitcher = computed(() => !authStore.isAuthenticated)
+
+useAgentNotifications()
 
 function onSessionExpired(event) {
   const detail = event?.detail?.message || t('session.expiredDetailDefault')

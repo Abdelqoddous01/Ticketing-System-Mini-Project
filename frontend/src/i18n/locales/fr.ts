@@ -22,6 +22,13 @@ const fr = {
     expiredSummary: 'Session expiree',
     expiredDetailDefault: 'Session expiree, veuillez vous reconnecter.',
   },
+  notifications: {
+    ticketAssigned: {
+      summary: 'Ticket assigne',
+      detail: 'Vous etes assigne au ticket #{ticketId}.',
+      detailWithTitle: 'Vous etes assigne au ticket #{ticketId} : {ticketTitle}',
+    },
+  },
   common: {
     refresh: 'Actualiser',
     cancel: 'Annuler',

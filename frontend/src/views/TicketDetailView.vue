@@ -599,7 +599,7 @@ onMounted(loadTicketData)
         </Panel>
       </div>
 
-      <div class="sidebar-column">
+      <div class="sidebar-column" v-if="canUpdateStatus">
         <Panel :header="t('tickets.detail.panelActions')">
           <div class="action-group">
             <h4 style="margin-top: 10px;">{{ t('tickets.detail.updateStatus') }}</h4>

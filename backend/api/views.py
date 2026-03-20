@@ -3,10 +3,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import User, Ticket, Message
-from .serializers import UserSerializer, TicketSerializer, MessageSerializer
+from .models import User, Ticket, Message, Notification
+from .serializers import (
+    UserSerializer,
+    TicketSerializer,
+    MessageSerializer,
+    NotificationSerializer,
+)
 from .permissions import IsAdmin, IsAgent, IsCustomer
-from .realtime import broadcast_message_created
+from .realtime import broadcast_message_created, broadcast_notification_created
 
 
 
@@ -69,10 +74,41 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'])
     def assign(self, request, pk=None):
         ticket = self.get_object()
-        ticket.assigned_to_id = request.data.get('user_id')
+
+        raw_user_id = request.data.get('user_id')
+        new_assignee = None
+
+        if raw_user_id not in [None, '', 'null']:
+            try:
+                assignee_id = int(raw_user_id)
+            except (TypeError, ValueError):
+                return Response({'error': 'Invalid user_id'}, status=400)
+
+            try:
+                new_assignee = User.objects.only('id', 'role', 'is_active').get(pk=assignee_id)
+            except User.DoesNotExist:
+                return Response({'error': 'Agent not found'}, status=404)
+
+            if not new_assignee.is_active:
+                return Response({'error': 'Agent is inactive'}, status=400)
+
+            if new_assignee.role != 'agent':
+                return Response({'error': 'Assigned user must have agent role'}, status=400)
+
+        previous_assignee_id = ticket.assigned_to_id
+        ticket.assigned_to = new_assignee
         ticket.save()
 
-        return Response({'status': 'assigned to agent'})
+        if new_assignee and new_assignee.id != previous_assignee_id:
+            notification = Notification.objects.create(
+                recipient=new_assignee,
+                assigned_by=request.user,
+                ticket=ticket,
+                event_type=Notification.EVENT_TYPE_TICKET_ASSIGNED,
+            )
+            broadcast_notification_created(notification)
+
+        return Response({'status': 'assigned to agent', 'assigned_to': ticket.assigned_to_id})
 
 
     @action(detail=True, methods=['patch'])
@@ -150,3 +186,30 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
             return queryset.filter(ticket__assigned_to=user)
 
         return queryset.filter(ticket__created_by=user)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.select_related('ticket', 'assigned_by').filter(
+            recipient=self.request.user,
+        )
+
+    @action(detail=False, methods=['get'])
+    def unread(self, request):
+        queryset = self.get_queryset().filter(is_read=False)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def read(self, request, pk=None):
+        notification = self.get_object()
+
+        if not notification.is_read:
+            notification.is_read = True
+            notification.save(update_fields=['is_read'])
+
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data)

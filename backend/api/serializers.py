@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Ticket, Message
+from .models import User, Ticket, Message, Notification
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -50,6 +50,25 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ['id', 'ticket', 'author', 'author_email', 'author_role', 'body', 'created_at']
         read_only_fields = ['id', 'ticket', 'author', 'created_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    assigned_by_email = serializers.EmailField(source='assigned_by.email', read_only=True)
+    ticket_title = serializers.CharField(source='ticket.title', read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id',
+            'event_type',
+            'ticket',
+            'ticket_title',
+            'assigned_by',
+            'assigned_by_email',
+            'is_read',
+            'created_at',
+        ]
+        read_only_fields = fields
 
 
 class RegisterSerializer(serializers.ModelSerializer):
