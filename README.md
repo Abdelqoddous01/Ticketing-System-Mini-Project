@@ -68,3 +68,8 @@ To also remove the PostgreSQL volume:
 ```bash
 docker compose down -v
 ```
+
+## Improvements To Be Done
+
+- Add backend automated tests for authentication, ticket lifecycle, permissions, and realtime notification flows.
+- Add frontend unit/component tests (Vitest) for stores, services, and key views.
