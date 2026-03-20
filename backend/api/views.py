@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import User, Ticket, Message
 from .serializers import UserSerializer, TicketSerializer, MessageSerializer
 from .permissions import IsAdmin, IsAgent, IsCustomer
+from .realtime import broadcast_message_created
 
 
 
@@ -126,8 +127,9 @@ class TicketViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             serializer = MessageSerializer(data=request.data)
             if serializer.is_valid():
-                serializer.save(ticket=ticket, author=request.user)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                message = serializer.save(ticket=ticket, author=request.user)
+                broadcast_message_created(message)
+                return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
             return Response(serializer.errors, status=400)
 

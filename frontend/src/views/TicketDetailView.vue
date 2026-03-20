@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import Card from 'primevue/card'
@@ -17,7 +17,11 @@ import PriorityBadge from '../components/PriorityBadge.vue'
 import MessageThread from '../components/MessageThread.vue'
 import MessageInput from '../components/MessageInput.vue'
 import { renderMarkdown } from '../utils/markdown'
-import { getTicketMessages, sendTicketMessage } from '../services/messageService'
+import {
+  buildTicketMessagesSocketUrl,
+  getTicketMessages,
+  sendTicketMessage,
+} from '../services/messageService'
 import { TICKET_PRIORITY_OPTIONS, TICKET_STATUS_OPTIONS } from '../services/ticketService'
 
 const route = useRoute()
@@ -35,6 +39,12 @@ const messages = ref([])
 const isLoadingMessages = ref(false)
 const isSendingMessage = ref(false)
 const messageDraft = ref('')
+const messageSocket = ref(null)
+const reconnectTimer = ref(null)
+const reconnectAttempts = ref(0)
+const shouldReconnect = ref(false)
+
+const MAX_RECONNECT_DELAY_MS = 10000
 
 const ticket = computed(() => ticketStore.selectedTicket)
 const ticketId = computed(() => Number(route.params.id))
@@ -146,6 +156,166 @@ function normalizeMessage(message) {
   }
 }
 
+function dedupeMessagesById(items) {
+  const seen = new Set()
+  const dedupedReversed = []
+
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const message = items[index]
+    const key = String(message.id)
+
+    if (seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    dedupedReversed.push(message)
+  }
+
+  return dedupedReversed.reverse()
+}
+
+function mergeMessage(rawMessage, replaceId = null) {
+  const normalized = normalizeMessage(rawMessage)
+  const nextMessages = [...messages.value]
+
+  if (replaceId !== null) {
+    const replaceIndex = nextMessages.findIndex((message) => String(message.id) === String(replaceId))
+
+    if (replaceIndex !== -1) {
+      nextMessages.splice(replaceIndex, 1, normalized)
+    } else {
+      nextMessages.push(normalized)
+    }
+  } else {
+    const existingIndex = nextMessages.findIndex(
+      (message) => String(message.id) === String(normalized.id),
+    )
+
+    if (existingIndex !== -1) {
+      nextMessages.splice(existingIndex, 1, normalized)
+    } else {
+      nextMessages.push(normalized)
+    }
+  }
+
+  messages.value = dedupeMessagesById(nextMessages)
+}
+
+function clearReconnectTimer() {
+  if (reconnectTimer.value === null) {
+    return
+  }
+
+  window.clearTimeout(reconnectTimer.value)
+  reconnectTimer.value = null
+}
+
+function closeMessageSocket() {
+  clearReconnectTimer()
+  shouldReconnect.value = false
+  reconnectAttempts.value = 0
+
+  if (!messageSocket.value) {
+    return
+  }
+
+  messageSocket.value.onopen = null
+  messageSocket.value.onmessage = null
+  messageSocket.value.onerror = null
+  messageSocket.value.onclose = null
+
+  if (
+    messageSocket.value.readyState === WebSocket.OPEN ||
+    messageSocket.value.readyState === WebSocket.CONNECTING
+  ) {
+    messageSocket.value.close(1000, 'socket-reset')
+  }
+
+  messageSocket.value = null
+}
+
+function scheduleSocketReconnect() {
+  if (!shouldReconnect.value || reconnectTimer.value !== null) {
+    return
+  }
+
+  const backoffDelay = Math.min(1000 * 2 ** reconnectAttempts.value, MAX_RECONNECT_DELAY_MS)
+  reconnectAttempts.value += 1
+
+  reconnectTimer.value = window.setTimeout(() => {
+    reconnectTimer.value = null
+    openMessageSocket()
+  }, backoffDelay)
+}
+
+function handleSocketMessage(rawData) {
+  let data
+
+  try {
+    data = JSON.parse(rawData)
+  } catch {
+    return
+  }
+
+  if (data?.type !== 'message.created' || !data?.payload) {
+    return
+  }
+
+  mergeMessage(data.payload)
+}
+
+function openMessageSocket() {
+  if (!Number.isInteger(ticketId.value) || ticketId.value <= 0) {
+    return
+  }
+
+  if (!authStore.accessToken) {
+    return
+  }
+
+  clearReconnectTimer()
+
+  if (messageSocket.value) {
+    messageSocket.value.close(1000, 'socket-reconnect')
+    messageSocket.value = null
+  }
+
+  const socket = new WebSocket(buildTicketMessagesSocketUrl(ticketId.value, authStore.accessToken))
+  messageSocket.value = socket
+
+  socket.onopen = () => {
+    reconnectAttempts.value = 0
+  }
+
+  socket.onmessage = (event) => {
+    handleSocketMessage(event.data)
+  }
+
+  socket.onerror = () => {}
+
+  socket.onclose = (event) => {
+    if (messageSocket.value === socket) {
+      messageSocket.value = null
+    }
+
+    if (!shouldReconnect.value) {
+      return
+    }
+
+    if ([4400, 4401, 4403].includes(event.code)) {
+      shouldReconnect.value = false
+      return
+    }
+
+    if (event.code === 1000) {
+      return
+    }
+
+    scheduleSocketReconnect()
+  }
+}
+
 async function loadMessages() {
   if (!Number.isInteger(ticketId.value) || ticketId.value <= 0) {
     messages.value = []
@@ -202,14 +372,8 @@ async function sendMessage() {
   isSendingMessage.value = true
 
   try {
-    const savedMessage = normalizeMessage(await sendTicketMessage(ticket.value.id, { body }))
-    const messageIndex = messages.value.findIndex((message) => message.id === optimisticId)
-
-    if (messageIndex === -1) {
-      messages.value.push(savedMessage)
-    } else {
-      messages.value.splice(messageIndex, 1, savedMessage)
-    }
+    const savedMessage = await sendTicketMessage(ticket.value.id, { body })
+    mergeMessage(savedMessage, optimisticId)
   } catch (error) {
     messages.value = messages.value.filter((message) => message.id !== optimisticId)
     messageDraft.value = body
@@ -225,6 +389,8 @@ async function sendMessage() {
 }
 
 async function loadTicketData() {
+  closeMessageSocket()
+
   if (!Number.isInteger(ticketId.value) || ticketId.value <= 0) {
     messages.value = []
     messageDraft.value = ''
@@ -238,6 +404,9 @@ async function loadTicketData() {
     if (canAssignAgent.value) {
       await ticketStore.fetchAgents()
     }
+
+    shouldReconnect.value = true
+    openMessageSocket()
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -348,6 +517,10 @@ watch(
     loadTicketData()
   },
 )
+
+onBeforeUnmount(() => {
+  closeMessageSocket()
+})
 
 onMounted(loadTicketData)
 </script>

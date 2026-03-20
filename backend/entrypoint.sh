@@ -38,9 +38,10 @@ if [ "${DJANGO_COLLECTSTATIC:-1}" = "1" ]; then
 fi
 
 if [ "$#" -eq 0 ]; then
-    set -- gunicorn backend.wsgi:application \
+    set -- gunicorn backend.asgi:application \
+        --worker-class uvicorn.workers.UvicornWorker \
         --bind 0.0.0.0:8000 \
-        --workers "${GUNICORN_WORKERS:-3}" \
+        --workers "${GUNICORN_WORKERS:-1}" \
         --timeout "${GUNICORN_TIMEOUT:-60}" \
         --access-logfile - \
         --error-logfile -
