@@ -6,6 +6,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Ticket
 from .realtime import ticket_messages_group_name, user_notifications_group_name
 
+from .MC import Roles
 
 class TicketMessageConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -63,10 +64,10 @@ class TicketMessageConsumer(AsyncWebsocketConsumer):
         except Ticket.DoesNotExist:
             return False
 
-        if user_role == 'admin':
+        if user_role == Roles.ADMIN:
             return True
 
-        if user_role == 'agent':
+        if user_role == Roles.AGENT:
             return ticket.assigned_to_id == user_id
 
         return ticket.created_by_id == user_id

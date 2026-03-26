@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User, Ticket, Message, Notification
+from .MC import Roles
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -58,16 +59,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = [
-            'id',
-            'event_type',
-            'ticket',
-            'ticket_title',
-            'assigned_by',
-            'assigned_by_email',
-            'is_read',
-            'created_at',
-        ]
+        fields = ['id','event_type','ticket','ticket_title','assigned_by','assigned_by_email','is_read','created_at',]
         read_only_fields = fields
 
 
@@ -83,4 +75,4 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        return User.objects.create_user(role='customer', **validated_data)
+        return User.objects.create_user(role=Roles.CUSTOMER, **validated_data)

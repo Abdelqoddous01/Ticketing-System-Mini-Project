@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser , BaseUserManager
-
+from .MC import *
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -22,11 +22,9 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractUser):
-    ROLE_CHOICES = [('customer', 'Customer'),('agent', 'Agent'),('admin', 'Admin'),]
-
     username = None
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='customer')
+    role = models.CharField(max_length=10, choices=Roles.choices, default=Roles.CUSTOMER)
     is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'email'
@@ -40,13 +38,10 @@ class User(AbstractUser):
 
 
 class Ticket(models.Model):
-    STATUS_CHOICES = [('open', 'Open'),('in_progress', 'In Progress'),('resolved', 'Resolved'),('closed', 'Closed'),]
-    PRIORITY_CHOICES = [('low', 'Low'),('medium', 'Medium'),('high', 'High'),]
-
     title = models.CharField(max_length=255)
     description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    priority = models.CharField(max_length=10, choices=Priority, default=Priority.MEDIUM)
 
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets_created')
     assigned_to = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True,related_name='tickets_assigned')
@@ -71,25 +66,11 @@ class Message(models.Model):
 
 
 class Notification(models.Model):
-    EVENT_TYPE_TICKET_ASSIGNED = 'ticket_assigned'
-    EVENT_TYPE_CHOICES = [
-        (EVENT_TYPE_TICKET_ASSIGNED, 'Ticket Assigned'),
-    ]
 
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    assigned_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='sent_notifications',
-    )
+    assigned_by = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True,related_name='sent_notifications',)
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='notifications')
-    event_type = models.CharField(
-        max_length=32,
-        choices=EVENT_TYPE_CHOICES,
-        default=EVENT_TYPE_TICKET_ASSIGNED,
-    )
+    event_type = models.CharField(max_length=32,choices=EventType,default=EventType.TICKET_ASSIGNED,)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

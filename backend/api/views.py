@@ -4,15 +4,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from .models import User, Ticket, Message, Notification
-from .serializers import (
-    UserSerializer,
-    TicketSerializer,
-    MessageSerializer,
-    NotificationSerializer,
-)
+from .serializers import (UserSerializer,TicketSerializer,MessageSerializer,NotificationSerializer,)
+
 from .permissions import IsAdmin, IsAgent, IsCustomer
 from .realtime import broadcast_message_created, broadcast_notification_created
 
+from .MC import *
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -39,10 +36,10 @@ class TicketViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.role == 'customer':
+        if user.role == Roles.CUSTOMER:
             return Ticket.objects.filter(created_by=user)
 
-        elif user.role == 'agent':
+        elif user.role == Roles.AGENT:
             return Ticket.objects.filter(assigned_to=user)
 
         return Ticket.objects.all()
@@ -92,7 +89,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             if not new_assignee.is_active:
                 return Response({'error': 'Agent is inactive'}, status=400)
 
-            if new_assignee.role != 'agent':
+            if new_assignee.role != Roles.AGENT:
                 return Response({'error': 'Assigned user must have agent role'}, status=400)
 
         previous_assignee_id = ticket.assigned_to_id
@@ -104,7 +101,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 recipient=new_assignee,
                 assigned_by=request.user,
                 ticket=ticket,
-                event_type=Notification.EVENT_TYPE_TICKET_ASSIGNED,
+                event_type=EventType.TICKET_ASSIGNED,
             )
             broadcast_notification_created(notification)
 
@@ -116,21 +113,25 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = self.get_object()
         new_status = request.data.get('status')
 
-        if new_status not in dict(Ticket.STATUS_CHOICES):
-            return Response({'error': 'Invalid status'}, status=400)
+        try:
+            new_status = Status(new_status)
+        except ValueError:
+            return Response({'error': 'Invalid status'},status=400)
 
-        ticket.status = new_status
+        ticket.status = new_status 
         ticket.save()
 
         return Response({'status': 'updated'})
-
+    
 
     @action(detail=True, methods=['patch'])
     def priority(self, request, pk=None):
         ticket = self.get_object()
         new_priority = request.data.get('priority')
 
-        if new_priority not in dict(Ticket.PRIORITY_CHOICES):
+        try :
+            new_priority = Priority(new_priority)
+        except ValueError:
             return Response({'error': 'Invalid priority'}, status=400)
 
         ticket.priority = new_priority
@@ -141,11 +142,11 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def close(self, request, pk=None):
-        if request.user.role == 'customer':
+        if request.user.role == Roles.CUSTOMER:
             return Response({'error': 'Not allowed'}, status=403)
 
         ticket = self.get_object()
-        ticket.status = 'closed'
+        ticket.status = Status.CLOSED
         ticket.save()
 
         return Response({'status': 'ticket closed'})
@@ -179,10 +180,10 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         queryset = Message.objects.select_related('ticket', 'author')
 
-        if user.role == 'admin':
+        if user.role == Roles.ADMIN:
             return queryset
 
-        if user.role == 'agent':
+        if user.role == Roles.AGENT:
             return queryset.filter(ticket__assigned_to=user)
 
         return queryset.filter(ticket__created_by=user)
